@@ -1,8 +1,6 @@
 // DataAutomation API Proxy — forwards /api/* requests to the VPS backend.
-// BACKEND_URL env var = http://187.127.100.76:5001
 
 export const dynamic = 'force-dynamic'
-export const runtime = 'nodejs'
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://127.0.0.1:5001'
 
@@ -11,12 +9,12 @@ const HOP_BY_HOP = new Set([
   'te', 'trailer', 'transfer-encoding', 'upgrade', 'content-length',
 ])
 
-function stripHopByHop(headers: Headers) {
+function stripHopByHop(headers) {
   for (const h of HOP_BY_HOP) headers.delete(h)
   return headers
 }
 
-async function proxy(req: Request, ctx: { params: Promise<{ path: string[] }> }): Promise<Response> {
+async function proxy(req, ctx) {
   const { path } = await ctx.params
   const pathStr = (path || []).join('/')
   const incoming = new URL(req.url)
@@ -26,13 +24,13 @@ async function proxy(req: Request, ctx: { params: Promise<{ path: string[] }> })
   const headers = stripHopByHop(new Headers(req.headers))
   headers.set('host', new URL(BACKEND_URL).host)
 
-  const init: RequestInit = {
+  const init = {
     method: req.method,
     headers,
   }
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     init.body = req.body
-    ;(init as RequestInit & { duplex?: 'half' }).duplex = 'half'
+    init.duplex = 'half'
   }
 
   try {
@@ -52,10 +50,10 @@ async function proxy(req: Request, ctx: { params: Promise<{ path: string[] }> })
   }
 }
 
-export async function GET(req: Request, ctx: { params: Promise<{ path: string[] }> }) { return proxy(req, ctx) }
-export async function POST(req: Request, ctx: { params: Promise<{ path: string[] }> }) { return proxy(req, ctx) }
-export async function PUT(req: Request, ctx: { params: Promise<{ path: string[] }> }) { return proxy(req, ctx) }
-export async function DELETE(req: Request, ctx: { params: Promise<{ path: string[] }> }) { return proxy(req, ctx) }
-export async function PATCH(req: Request, ctx: { params: Promise<{ path: string[] }> }) { return proxy(req, ctx) }
-export async function HEAD(req: Request, ctx: { params: Promise<{ path: string[] }> }) { return proxy(req, ctx) }
-export async function OPTIONS(req: Request, ctx: { params: Promise<{ path: string[] }> }) { return proxy(req, ctx) }
+export async function GET(req, ctx) { return proxy(req, ctx) }
+export async function POST(req, ctx) { return proxy(req, ctx) }
+export async function PUT(req, ctx) { return proxy(req, ctx) }
+export async function DELETE(req, ctx) { return proxy(req, ctx) }
+export async function PATCH(req, ctx) { return proxy(req, ctx) }
+export async function HEAD(req, ctx) { return proxy(req, ctx) }
+export async function OPTIONS(req, ctx) { return proxy(req, ctx) }
