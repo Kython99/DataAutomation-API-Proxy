@@ -9,6 +9,17 @@ const HOP_BY_HOP = new Set([
   'te', 'trailer', 'transfer-encoding', 'upgrade', 'content-length',
 ])
 
+const CORS_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://analystzero.vercel.app'
+
+function corsHeaders(method) {
+  return {
+    'access-control-allow-origin': CORS_ORIGIN,
+    'access-control-allow-methods': 'GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS',
+    'access-control-allow-headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin',
+    'access-control-max-age': '86400',
+  }
+}
+
 function stripHopByHop(headers) {
   for (const h of HOP_BY_HOP) headers.delete(h)
   return headers
@@ -45,7 +56,7 @@ async function proxy(req, ctx) {
     const message = err instanceof Error ? err.message : String(err)
     return new Response(JSON.stringify({ error: 'Backend unavailable', details: message }), {
       status: 502,
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', ...corsHeaders() },
     })
   }
 }
@@ -56,4 +67,15 @@ export async function PUT(req, ctx) { return proxy(req, ctx) }
 export async function DELETE(req, ctx) { return proxy(req, ctx) }
 export async function PATCH(req, ctx) { return proxy(req, ctx) }
 export async function HEAD(req, ctx) { return proxy(req, ctx) }
-export async function OPTIONS(req, ctx) { return proxy(req, ctx) }
+export async function OPTIONS(req, ctx) {
+  const origin = req.headers.get('origin')
+  return new Response(null, {
+    status: 204,
+    headers: {
+      'access-control-allow-origin': CORS_ORIGIN,
+      'access-control-allow-methods': 'GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS',
+      'access-control-allow-headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin',
+      'access-control-max-age': '86400',
+    },
+  })
+}
